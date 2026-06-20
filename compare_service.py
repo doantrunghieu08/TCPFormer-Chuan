@@ -61,13 +61,13 @@ class PoseComparator:
         # SVD
         U, S, Vt = np.linalg.svd(H)
         
-        # R = V * U^T
-        R = np.dot(Vt.T, U.T)
+        # R = U * V^T (với Vt là V^T từ numpy svd)
+        R = np.dot(U, Vt)
         
         # Đảm bảo không bị lật ngược (Reflection)
         if np.linalg.det(R) < 0:
             Vt[2, :] *= -1
-            R = np.dot(Vt.T, U.T)
+            R = np.dot(U, Vt)
             
         # Xoay student pose
         stu_aligned = np.dot(stu_pose, R)
