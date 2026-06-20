@@ -6,6 +6,7 @@ import json
 import numpy as np
 from typing import Union
 from config import Config
+from typing import Union, Optional
 
 def parse_json_to_pose12(json_data: Union[str, dict], data_key: str = "standardData") -> np.ndarray:
     if isinstance(json_data, str):
