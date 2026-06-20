@@ -123,3 +123,21 @@ def extract_frame_as_image(video_path: Path, frame_idx: int, output_path: Path) 
         cv2.imwrite(str(output_path), frame)
     cap.release()
 
+def extract_frame_as_base64(video_path: Path, frame_idx: int) -> str:
+    import cv2
+    import base64
+    cap = cv2.VideoCapture(str(video_path))
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+    ret, frame = cap.read()
+    cap.release()
+    
+    if ret:
+        # Giảm kích thước ảnh xuống một nửa để chuỗi Base64 không quá dài
+        height, width = frame.shape[:2]
+        frame = cv2.resize(frame, (width // 2, height // 2))
+        
+        _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+        b64_str = base64.b64encode(buffer).decode('utf-8')
+        return f"data:image/jpeg;base64,{b64_str}"
+    return ""
+

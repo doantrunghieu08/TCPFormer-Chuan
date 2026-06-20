@@ -7,14 +7,12 @@ import time
 from pathlib import Path
 import dataclasses
 
-from utils import parse_json_to_pose12, download_video, extract_frame_as_image
+from utils import parse_json_to_pose12, download_video, extract_frame_as_base64
 from compare_service import PoseComparator
 from report_service import ReportGenerator
 
 app = FastAPI(title="Compare Pose API", description="API chấm điểm tư thế yoga/thể dục")
-output_dir_path = Path("d:/compare-pose-project/output")
-output_dir_path.mkdir(parents=True, exist_ok=True)
-app.mount("/output", StaticFiles(directory=str(output_dir_path)), name="output")
+# No static output directory needed anymore
 
 class CompareRequest(BaseModel):
     ref_url: str
@@ -29,9 +27,7 @@ class CompareRequest(BaseModel):
 @app.post("/compare-pose")
 def compare_pose(req: CompareRequest):
     try:
-        output_dir = Path("d:/compare-pose-project/output")
         cache_root = Path("d:/compare-pose-project/cache")
-        output_dir.mkdir(parents=True, exist_ok=True)
         cache_root.mkdir(parents=True, exist_ok=True)
 
         print("[API] Đang xử lý dữ liệu JSON...")
@@ -57,43 +53,30 @@ def compare_pose(req: CompareRequest):
             tolerance=req.tolerance,
         )
 
-        # Xuất ảnh và Report HTML
-        timestamp = int(time.time())
-        output_html = output_dir / f"report_{timestamp}.html"
-        images_dir = output_dir / f"report_{timestamp}_images"
-        images_dir.mkdir(parents=True, exist_ok=True)
-        
-        extracted_refs = set()
-        extracted_stus = set()
+        # Nhúng ảnh Base64
+        extracted_refs = {}
+        extracted_stus = {}
         
         for error in report_data.errors:
             ref_frame = error["ref_frame"]
             stu_frame = error["student_frame"]
             
-            ref_img_name = f"ref_frame_{ref_frame}.jpg"
-            stu_img_name = f"stu_frame_{stu_frame}.jpg"
-            
             if ref_frame not in extracted_refs:
-                extract_frame_as_image(ref_video_path, ref_frame, images_dir / ref_img_name)
-                extracted_refs.add(ref_frame)
+                extracted_refs[ref_frame] = extract_frame_as_base64(ref_video_path, ref_frame)
                 
             if stu_frame not in extracted_stus:
-                extract_frame_as_image(stu_video_path, stu_frame, images_dir / stu_img_name)
-                extracted_stus.add(stu_frame)
+                extracted_stus[stu_frame] = extract_frame_as_base64(stu_video_path, stu_frame)
                 
-            error["ref_image_path"] = f"/output/report_{timestamp}_images/{ref_img_name}"
-            error["stu_image_path"] = f"/output/report_{timestamp}_images/{stu_img_name}"
+            error["ref_image_path"] = extracted_refs[ref_frame]
+            error["stu_image_path"] = extracted_stus[stu_frame]
         
-        ReportGenerator.render_html_report(
+        html_content = ReportGenerator.render_html_report(
             ref_url=req.ref_url,
             stu_url=req.stu_url,
             report_data=report_data,
-            output_path=output_html,
+            output_path=None,
             max_errors_per_pair=req.max_errors_per_pair,
         )
-
-        with open(output_html, "r", encoding="utf-8") as f:
-            html_content = f.read()
             
         return HTMLResponse(content=html_content)
 

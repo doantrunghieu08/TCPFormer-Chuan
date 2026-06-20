@@ -88,8 +88,8 @@ class ReportGenerator:
     def render_html_report(
         ref_url: str, stu_url: str,
         report_data: CompareReport,
-        output_path: Path, max_errors_per_pair: int
-    ) -> None:
+        output_path: Optional[Path] = None, max_errors_per_pair: int = 3
+    ) -> str:
         errors = report_data.errors
 
         def count_display_errors(errors_list: List[Dict[str, Any]]) -> int:
@@ -143,5 +143,8 @@ th {{ background: #f1f7f1; color:#153f1e; }}
 </body>
 </html>
 """
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(html, encoding="utf-8")
+        if output_path is not None:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(html, encoding="utf-8")
+            
+        return html
