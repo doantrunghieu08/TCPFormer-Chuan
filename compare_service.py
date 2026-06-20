@@ -8,6 +8,32 @@ from pose3d_service import Pose3DService
 
 class PoseComparator:
     @staticmethod
+    def calculate_move_distance(bone_idx: int, angle_diff_deg: float, student_height_cm: float) -> float:
+        # Tỉ lệ chiều dài các đoạn xương so với tổng chiều cao cơ thể
+        bone_ratios = {
+            0: 0.19,   # Trái: Vai -> Khuỷu tay
+            1: 0.15,   # Trái: Khuỷu tay -> Cổ tay
+            2: 0.19,   # Phải: Vai -> Khuỷu tay
+            3: 0.15,   # Phải: Khuỷu tay -> Cổ tay
+            4: 0.245,  # Trái: Hông -> Đầu gối
+            5: 0.246,  # Trái: Đầu gối -> Mắt cá
+            6: 0.245,  # Phải: Hông -> Đầu gối
+            7: 0.246,  # Phải: Đầu gối -> Mắt cá
+            8: 0.29,   # Trái: Vai -> Hông (Thân)
+            9: 0.29,   # Phải: Vai -> Hông (Thân)
+        }
+        
+        ratio = bone_ratios.get(bone_idx, 0.2)
+        bone_len_cm = student_height_cm * ratio
+        
+        # Tính cung tròn (khoảng cách di chuyển của child joint)
+        import math
+        theta_rad = math.radians(angle_diff_deg)
+        move_cm = bone_len_cm * theta_rad
+        
+        return round(move_cm, 2)
+
+    @staticmethod
     def normalize_pose12(pose12_xyz: np.ndarray) -> Tuple[np.ndarray, float]:
         pose = np.asarray(pose12_xyz, dtype=np.float32)[:, :3]
         right_hip = pose[6]
@@ -34,7 +60,7 @@ class PoseComparator:
 
         errors: List[ErrorDetail] = []
 
-        for parent_idx, child_idx, bone_name, child_name in Config.BONES_12:
+        for i, (parent_idx, child_idx, bone_name, child_name) in enumerate(Config.BONES_12):
             v_ref = ref_norm[child_idx] - ref_norm[parent_idx]
             v_stu = stu_norm[child_idx] - stu_norm[parent_idx]
 
@@ -47,16 +73,16 @@ class PoseComparator:
             cos_sim = float(np.clip(cos_sim, -1.0, 1.0))
 
             if cos_sim < tolerance:
-                unit_ref = v_ref / norm_ref
-                new_child_pos = stu_norm[parent_idx] + unit_ref * norm_stu
-                move_norm = float(np.linalg.norm(new_child_pos - stu_norm[child_idx]))
-                move_cm = move_norm * float(stu_height_cm)
+                import math
+                angle_rad = math.acos(cos_sim)
+                angle_deg = math.degrees(angle_rad)
+                move_cm = PoseComparator.calculate_move_distance(i, angle_deg, stu_height_cm)
 
                 errors.append(ErrorDetail(
                     bone=bone_name,
                     child_joint=child_name,
                     cosine=round(cos_sim, 4),
-                    move_cm=round(move_cm, 2)
+                    move_cm=move_cm
                 ))
 
         return errors
