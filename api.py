@@ -24,11 +24,14 @@ app.add_middleware(
 
 # No static output directory needed anymore
 
+from pydantic import BaseModel, Field
+
 class CompareRequest(BaseModel):
     ref_url: str
-    ref_height: int
+    ref_height: int = Field(default=170, ge=50, le=250)
     stu_url: str
-    stu_height: int
+    # Ràng buộc chiều cao phải từ 50cm đến 250cm để tránh nhập sai làm sai lệch tính toán
+    stu_height: int = Field(default=170, ge=50, le=250)
     submission_data: Dict[str, Any]
     n_keyframes: Optional[int] = 30
     tolerance: Optional[float] = 0.985
