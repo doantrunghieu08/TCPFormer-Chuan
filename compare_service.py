@@ -51,12 +51,16 @@ class PoseComparator:
     @staticmethod
     def align_poses_3d(ref_pose: np.ndarray, stu_pose: np.ndarray) -> np.ndarray:
         """
-        Sử dụng thuật toán Kabsch (Procrustes Analysis) để tìm ma trận xoay tối ưu R
-        nhằm xoay stu_pose khớp với ref_pose.
-        Cả hai pose đều phải được chuẩn hóa (normalize) và có cùng kích thước.
+        Sử dụng thuật toán Kabsch (Procrustes Analysis) trên phần THÂN MÌNH (Torso).
+        Chỉ dùng vai và hông để tìm góc xoay, tránh việc tay chân chuyển động làm xoay lệch toàn bộ cơ thể.
         """
-        # H = stu_pose^T * ref_pose
-        H = np.dot(stu_pose.T, ref_pose)
+        # 0: right_shoulder, 3: left_shoulder, 6: right_hip, 9: left_hip
+        torso_indices = [0, 3, 6, 9]
+        ref_torso = ref_pose[torso_indices]
+        stu_torso = stu_pose[torso_indices]
+
+        # H = stu_torso^T * ref_torso
+        H = np.dot(stu_torso.T, ref_torso)
         
         # SVD
         U, S, Vt = np.linalg.svd(H)
