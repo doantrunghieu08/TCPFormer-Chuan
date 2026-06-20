@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -12,6 +13,15 @@ from compare_service import PoseComparator
 from report_service import ReportGenerator
 
 app = FastAPI(title="Compare Pose API", description="API chấm điểm tư thế yoga/thể dục")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # No static output directory needed anymore
 
 class CompareRequest(BaseModel):
