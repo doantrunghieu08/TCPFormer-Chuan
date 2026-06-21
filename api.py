@@ -40,7 +40,7 @@ class CompareRequest(BaseModel):
 @app.post("/compare-pose")
 def compare_pose(req: CompareRequest):
     try:
-        cache_root = Path("d:/compare-pose-project/cache")
+        cache_root = Path(__file__).parent / "cache"
         cache_root.mkdir(parents=True, exist_ok=True)
 
         print("[API] Đang xử lý dữ liệu JSON...")
